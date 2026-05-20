@@ -661,3 +661,54 @@ class FileScanner(
                     return WalletModel(
                         fileName = file.name,
                         fullPath = file.absolute
+if (addresses.isNotEmpty()) {
+                        return WalletModel(
+                            fileName = file.name,
+                            fullPath = file.absolutePath,
+                            fileSizeBytes = file.length(),
+                            walletType = WalletType.EXCHANGE_EXPORT,
+                            address = addresses.first(),
+                            status = WalletStatus.PENDING,
+                            tags = listOf("csv", "exchange")
+                        )
+                    }
+                }
+            }
+
+            // 8. Generic text file z kluczem
+            if (file.extension in listOf("txt", "bak", "backup", "old", "priv", "key", "pem")) {
+                // Szukaj 64-znakowego hex (klucz prywatny)
+                val hexKeyRegex = Regex("""[a-fA-F0-9]{64}""")
+                val hexMatch = hexKeyRegex.find(content)
+                if (hexMatch != null) {
+                    return WalletModel(
+                        fileName = file.name,
+                        fullPath = file.absolutePath,
+                        fileSizeBytes = file.length(),
+                        walletType = WalletType.PRIVATE_KEY,
+                        privateKey = hexMatch.value,
+                        status = WalletStatus.PENDING
+                    )
+                }
+            }
+
+            // 9. Plik z "address" w nazwie
+            if (file.name.contains("address", ignoreCase = true) && file.extension == "txt") {
+                val addrRegex = Regex("""0x[a-fA-F0-9]{40}""")
+                val addrMatch = addrRegex.find(content)
+                if (addrMatch != null) {
+                    return WalletModel(
+                        fileName = file.name,
+                        fullPath = file.absolutePath,
+                        fileSizeBytes = file.length(),
+                        walletType = WalletType.CUSTOM,
+                        address = addrMatch.value,
+                        status = WalletStatus.PENDING
+                    )
+                }
+            }
+
+            return null
+        }
+    }
+}
